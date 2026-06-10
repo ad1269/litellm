@@ -406,6 +406,49 @@ class TestAzureAnthropicCostCalculation:
         assert kwargs["response_cost"] == 0.002
 
     @patch("litellm.completion_cost")
+    def test_cost_calculation_skips_unknown_litellm_params_model_for_model_group(
+        self, mock_completion_cost
+    ):
+        """When litellm_params.model is itself the "unknown" sentinel, the
+        deployment-model branch must not short-circuit; resolution falls through
+        to model_group so costing still prices the real model instead of "unknown"."""
+        from datetime import datetime
+
+        from litellm.types.utils import ModelResponse
+
+        mock_completion_cost.return_value = 0.003
+
+        logging_obj = self._create_mock_logging_obj(model="unknown")
+        logging_obj.model_call_details["litellm_params"] = {
+            "model": "unknown",
+            "metadata": {
+                "model_group": "passthrough/anthropic/claude-3-5-haiku-20241022"
+            },
+        }
+        logging_obj.litellm_params = logging_obj.model_call_details["litellm_params"]
+
+        mock_response = MagicMock(spec=ModelResponse)
+        mock_response.id = "test-id"
+        mock_response.model = "unknown"
+
+        kwargs = AnthropicPassthroughLoggingHandler._create_anthropic_response_logging_payload(
+            litellm_model_response=mock_response,
+            model="unknown",
+            kwargs={},
+            start_time=datetime.now(),
+            end_time=datetime.now(),
+            logging_obj=logging_obj,
+        )
+
+        mock_completion_cost.assert_called_once()
+        assert (
+            mock_completion_cost.call_args[1]["model"]
+            == "anthropic/claude-3-5-haiku-20241022"
+        )
+        assert kwargs["response_cost"] == 0.003
+        assert kwargs["model"] == "anthropic/claude-3-5-haiku-20241022"
+
+    @patch("litellm.completion_cost")
     def test_streaming_cost_calculation_resolves_model_from_message_start_chunk(
         self, mock_completion_cost
     ):

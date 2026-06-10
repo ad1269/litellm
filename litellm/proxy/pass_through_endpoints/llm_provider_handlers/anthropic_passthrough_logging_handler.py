@@ -108,7 +108,7 @@ class AnthropicPassthroughLoggingHandler:
             "litellm_params", {}
         ) or {}
         deployment_model = litellm_params.get("model")
-        if deployment_model:
+        if deployment_model and deployment_model != "unknown":
             return deployment_model
         model_group = (litellm_params.get("metadata", {}) or {}).get("model_group")
         if model_group:
