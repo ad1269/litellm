@@ -566,6 +566,24 @@ class TestAzureAnthropicCostCalculation:
             == "claude-3-5-haiku-20241022"
         )
 
+    def test_extract_model_parses_per_line_not_first_data_substring(self):
+        """A raw multi-line SSE event whose non-data line contains the substring
+        "data:" must not derail parsing: matching only lines that start with
+        "data:" recovers the message_start model, whereas a first-substring slice
+        would consume the wrong offset, fail to parse JSON, and return None."""
+        raw_event = (
+            "event: ping data: not-json\n"
+            'data: {"type": "message_start", "message": '
+            '{"model": "claude-3-5-haiku-20241022"}}\n\n'
+        )
+
+        assert (
+            AnthropicPassthroughLoggingHandler._extract_model_from_anthropic_chunks(
+                [raw_event]
+            )
+            == "claude-3-5-haiku-20241022"
+        )
+
     def test_passthrough_logging_sets_response_cost_with_server_tool_use_dict(self):
         from litellm.types.utils import Choices, Message, ModelResponse
 

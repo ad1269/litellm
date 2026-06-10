@@ -120,13 +120,12 @@ class AnthropicPassthroughLoggingHandler:
         all_chunks: Sequence[Union[str, bytes]],
     ) -> Optional[str]:
         for raw in all_chunks:
-            line = raw.decode("utf-8") if isinstance(raw, bytes) else raw
-            for event in line.split("\n\n"):
-                data_idx = event.find("data:")
-                if data_idx == -1:
+            text = raw.decode("utf-8") if isinstance(raw, bytes) else raw
+            for line in text.splitlines():
+                if not line.startswith("data:"):
                     continue
                 try:
-                    data = json.loads(event[data_idx + len("data:") :].strip())
+                    data = json.loads(line[len("data:") :].strip())
                 except (json.JSONDecodeError, ValueError):
                     continue
                 if not isinstance(data, dict):
