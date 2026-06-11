@@ -4,6 +4,7 @@
 import asyncio
 import base64
 import json
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union, cast
 
 from fastapi import HTTPException
@@ -1552,6 +1553,19 @@ class _PROXY_LiteLLMManagedFiles(CustomLogger, BaseFileEndpoints):
             exception_dict = {}
             for model_id, file_id in specific_model_file_id_mapping.items():
                 try:
+                    # Cloud-storage providers (e.g. Bedrock S3) validate file ids
+                    # against the deployment's configured bucket, which they only
+                    # trust from this immutable server-side snapshot, never from
+                    # request params.
+                    credentials = llm_router.get_deployment_credentials_with_provider(
+                        model_id=model_id
+                    )
+                    if credentials is not None:
+                        data["_litellm_internal_model_credentials"] = cast(
+                            Dict, MappingProxyType(dict(credentials))
+                        )
+                    else:
+                        data.pop("_litellm_internal_model_credentials", None)
                     return await llm_router.afile_content(model=model_id, file_id=file_id, **data)  # type: ignore
                 except Exception as e:
                     exception_dict[model_id] = str(e)
