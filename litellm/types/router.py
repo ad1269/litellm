@@ -166,6 +166,13 @@ class CredentialLiteLLMParams(BaseModel):
     api_key: Optional[str] = None
     api_base: Optional[str] = None
     api_version: Optional[str] = None
+    ## AZURE OAUTH ##
+    # Without this field, ``get_deployment_credentials_with_provider``
+    # round-trips ``litellm_params`` through a strict Pydantic dump and
+    # silently drops the OAuth token before the files/batch/passthrough
+    # callers see it, breaking Azure deployments configured with
+    # ``azure_ad_token`` instead of a static ``api_key`` (#30235).
+    azure_ad_token: Optional[str] = None
     ## VERTEX AI ##
     vertex_project: Optional[str] = None
     vertex_location: Optional[str] = None
@@ -178,6 +185,8 @@ class CredentialLiteLLMParams(BaseModel):
     aws_secret_access_key: Optional[str] = None
     aws_region_name: Optional[str] = None
     aws_bedrock_runtime_endpoint: Optional[str] = None
+    aws_bedrock_project_id: Optional[str] = None
+    s3_bucket_name: Optional[str] = None
     ## IBM WATSONX ##
     watsonx_region_name: Optional[str] = None
 
@@ -364,6 +373,7 @@ class LiteLLMParamsTypedDict(TypedDict, total=False):
     aws_access_key_id: Optional[str]
     aws_secret_access_key: Optional[str]
     aws_region_name: Optional[str]
+    aws_bedrock_project_id: Optional[str]
     ## AWS S3 VECTORS ##
     vector_bucket_name: Optional[str]
     index_name: Optional[str]
